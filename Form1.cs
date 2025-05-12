@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Windows.Forms;
 using SpaceBallCrusher1.Entities;
 
-
 namespace SpaceBallCrusher1
 {
     public partial class Form1 : Form
@@ -12,6 +11,7 @@ namespace SpaceBallCrusher1
         private PlayerShip player;
         private List<Ball> balls;
         private List<Bullet> bullets;
+        private List<BackgroundObject> backgroundObjects;
         private Random random;
         private int score;
         private int level;
@@ -20,6 +20,9 @@ namespace SpaceBallCrusher1
         private Font uiFont;
         private Font gameOverFont;
         private Image backgroundImage;
+
+        private const int StarCount = 150;
+        private const int AsteroidCount = 30;
 
         public Form1()
         {
@@ -36,7 +39,7 @@ namespace SpaceBallCrusher1
             }
             catch
             {
-                backgroundImage = null; // Если изображение не загружено, будет черный фон
+                backgroundImage = null;
             }
 
             player = new PlayerShip(ClientSize.Width / 2, ClientSize.Height / 2);
@@ -50,6 +53,17 @@ namespace SpaceBallCrusher1
             uiFont = new Font("Arial", 12, FontStyle.Bold);
             gameOverFont = new Font("Arial", 48, FontStyle.Bold);
 
+            // Инициализация фоновых объектов
+            backgroundObjects = new List<BackgroundObject>();
+            for (int i = 0; i < StarCount; i++)
+            {
+                backgroundObjects.Add(new Star(ClientSize.Width, ClientSize.Height));
+            }
+            for (int i = 0; i < AsteroidCount; i++)
+            {
+                backgroundObjects.Add(new Asteroid(ClientSize.Width, ClientSize.Height));
+            }
+
             // Создаем начальный шар
             balls.Add(new Ball(random.Next(50, ClientSize.Width - 50),
                      random.Next(50, ClientSize.Height - 50),
@@ -62,10 +76,19 @@ namespace SpaceBallCrusher1
         {
             Graphics g = e.Graphics;
 
-            // Рисуем фон
+            // Черный фон
+            g.Clear(Color.Black);
+
+            // Рисуем фоновое изображение (если есть)
             if (backgroundImage != null)
             {
                 g.DrawImage(backgroundImage, 0, 0, ClientSize.Width, ClientSize.Height);
+            }
+
+            // Рисуем фоновые объекты (звезды и астероиды)
+            foreach (var obj in backgroundObjects)
+            {
+                obj.Draw(g);
             }
 
             // Рисуем игрока
@@ -92,7 +115,7 @@ namespace SpaceBallCrusher1
                 string gameOverText = "Проиграл";
                 SizeF textSize = g.MeasureString(gameOverText, gameOverFont);
 
-                // Рисуем текст с красной обводкой для лучшей видимости
+                // Рисуем текст с черной обводкой
                 g.DrawString(gameOverText, gameOverFont, Brushes.Black,
                     (ClientSize.Width - textSize.Width) / 2 + 2,
                     (ClientSize.Height - textSize.Height) / 2 + 2);
@@ -119,6 +142,12 @@ namespace SpaceBallCrusher1
         private void gameTimer_Tick(object sender, EventArgs e)
         {
             if (gameOver) return;
+
+            // Обновляем фоновые объекты
+            foreach (var obj in backgroundObjects)
+            {
+                obj.Update(ClientSize.Width, ClientSize.Height);
+            }
 
             player.UpdatePosition(PointToClient(Cursor.Position));
 
@@ -232,6 +261,29 @@ namespace SpaceBallCrusher1
             {
                 InitializeGame();
             }
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            // При изменении размера окна пересоздаем фоновые объекты
+            if (backgroundObjects != null && backgroundObjects.Count > 0)
+            {
+                var oldObjects = backgroundObjects;
+                backgroundObjects = new List<BackgroundObject>();
+
+                foreach (var obj in oldObjects)
+                {
+                    if (obj is Star)
+                        backgroundObjects.Add(new Star(ClientSize.Width, ClientSize.Height));
+                    else if (obj is Asteroid)
+                        backgroundObjects.Add(new Asteroid(ClientSize.Width, ClientSize.Height));
+                }
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

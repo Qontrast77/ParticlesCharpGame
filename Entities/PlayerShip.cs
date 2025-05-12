@@ -6,10 +6,10 @@ namespace SpaceBallCrusher1.Entities
     {
         public float X { get; set; }
         public float Y { get; set; }
-        private const int ShipWidth = 40;
-        private const int ShipHeight = 60;
-        private const int EngineSize = 15;
-        private const int CockpitSize = 20;
+        private const int ShipWidth = 30;  
+        private const int ShipHeight = 45; 
+        private const int EngineSize = 10;  
+        private const int CockpitSize = 15; 
 
         public PlayerShip(float x, float y)
         {
@@ -36,7 +36,7 @@ namespace SpaceBallCrusher1.Entities
             // Кабина (полукруг)
             RectangleF cockpitRect = new RectangleF(
                 X - CockpitSize / 2,
-                Y - ShipHeight / 2 - CockpitSize / 3,
+                Y - ShipHeight / 2 - CockpitSize / 4, // немного подняли кабину
                 CockpitSize,
                 CockpitSize);
 
@@ -61,20 +61,17 @@ namespace SpaceBallCrusher1.Entities
                 EngineSize);
 
             // Рисуем корпус
-            g.FillPolygon(new SolidBrush(Color.FromArgb(70, 130, 180)), hull); // Стальной синий
+            g.FillPolygon(new SolidBrush(Color.FromArgb(0, 255, 200)), hull);
             g.DrawPolygon(Pens.White, hull);
 
             // Рисуем кабину
-            g.FillEllipse(new SolidBrush(Color.FromArgb(100, 149, 237)), cockpitRect); // Голубой
+            g.FillEllipse(new SolidBrush(Color.FromArgb(0, 255, 200)), cockpitRect);
             g.DrawEllipse(Pens.White, cockpitRect);
 
             // Рисуем двигатели
             g.FillRectangle(Brushes.DarkSlateGray, leftEngine);
             g.FillRectangle(Brushes.DarkSlateGray, rightEngine);
             g.FillRectangle(Brushes.DarkSlateGray, centerEngine);
-            g.DrawRectangle(Pens.White, leftEngine.X, leftEngine.Y, leftEngine.Width, leftEngine.Height);
-            g.DrawRectangle(Pens.White, rightEngine.X, rightEngine.Y, rightEngine.Width, rightEngine.Height);
-            g.DrawRectangle(Pens.White, centerEngine.X, centerEngine.Y, centerEngine.Width, centerEngine.Height);
 
             // Огни двигателей (анимация)
             if (DateTime.Now.Millisecond % 500 < 250)
@@ -82,22 +79,22 @@ namespace SpaceBallCrusher1.Entities
                 PointF[] leftFlame = new PointF[3]
                 {
                     new PointF(X - ShipWidth/3 + EngineSize/4, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X - ShipWidth/3, Y + ShipHeight/2 + EngineSize + 10),
-                    new PointF(X - ShipWidth/3 + EngineSize/2, Y + ShipHeight/2 + EngineSize + 10)
+                    new PointF(X - ShipWidth/3, Y + ShipHeight/2 + EngineSize + 5), // уменьшена длина пламени
+                    new PointF(X - ShipWidth/3 + EngineSize/2, Y + ShipHeight/2 + EngineSize + 5)
                 };
 
                 PointF[] rightFlame = new PointF[3]
                 {
                     new PointF(X + ShipWidth/3 - EngineSize/4, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X + ShipWidth/3 - EngineSize/2, Y + ShipHeight/2 + EngineSize + 10),
-                    new PointF(X + ShipWidth/3, Y + ShipHeight/2 + EngineSize + 10)
+                    new PointF(X + ShipWidth/3 - EngineSize/2, Y + ShipHeight/2 + EngineSize + 5),
+                    new PointF(X + ShipWidth/3, Y + ShipHeight/2 + EngineSize + 5)
                 };
 
                 PointF[] centerFlame = new PointF[3]
                 {
                     new PointF(X, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X - EngineSize/3, Y + ShipHeight/2 + EngineSize + 15),
-                    new PointF(X + EngineSize/3, Y + ShipHeight/2 + EngineSize + 15)
+                    new PointF(X - EngineSize/3, Y + ShipHeight/2 + EngineSize + 8), // уменьшена длина пламени
+                    new PointF(X + EngineSize/3, Y + ShipHeight/2 + EngineSize + 8)
                 };
 
                 g.FillPolygon(Brushes.OrangeRed, leftFlame);
