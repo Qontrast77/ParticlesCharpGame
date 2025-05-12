@@ -12,6 +12,7 @@ namespace SpaceBallCrusher1
         private List<Ball> balls;
         private List<Bullet> bullets;
         private List<LaserBeam> lasers;
+        private List<ExplosionParticle> explosionParticles;
         private List<BackgroundObject> backgroundObjects;
         private Random random;
         private int score;
@@ -36,7 +37,6 @@ namespace SpaceBallCrusher1
 
         private void InitializeGame()
         {
-            // Загрузка фонового изображения
             try
             {
                 backgroundImage = Image.FromFile("Image/космос.jpg");
@@ -50,20 +50,20 @@ namespace SpaceBallCrusher1
             balls = new List<Ball>();
             bullets = new List<Bullet>();
             lasers = new List<LaserBeam>();
+            explosionParticles = new List<ExplosionParticle>();
+            backgroundObjects = new List<BackgroundObject>();
             random = new Random();
             score = 0;
             level = 1;
             ammo = 7;
-            laserAmmo = 5;
+            laserAmmo = 1;
             gameOver = false;
             laserMode = false;
             uiFont = new Font("Arial", 12, FontStyle.Bold);
             gameOverFont = new Font("Arial", 48, FontStyle.Bold);
 
-            // Инициализация фоновых объектов
             InitializeBackgroundObjects();
 
-            // Создаем начальный шар
             balls.Add(new Ball(random.Next(50, ClientSize.Width - 50),
                      random.Next(50, ClientSize.Height - 50),
                      40, 3, Color.Red));
@@ -73,7 +73,6 @@ namespace SpaceBallCrusher1
 
         private void InitializeBackgroundObjects()
         {
-            backgroundObjects = new List<BackgroundObject>();
             for (int i = 0; i < StarCount; i++)
             {
                 backgroundObjects.Add(new Star(ClientSize.Width, ClientSize.Height));
@@ -87,47 +86,41 @@ namespace SpaceBallCrusher1
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-
-            // Черный фон
             g.Clear(Color.Black);
 
-            // Рисуем фоновое изображение (если есть)
             if (backgroundImage != null)
             {
                 g.DrawImage(backgroundImage, 0, 0, ClientSize.Width, ClientSize.Height);
             }
 
-            // Рисуем фоновые объекты
             foreach (var obj in backgroundObjects)
             {
                 obj.Draw(g);
             }
 
-            // Рисуем лазерные лучи
+            foreach (var particle in explosionParticles)
+            {
+                particle.Draw(g);
+            }
+
             foreach (var laser in lasers)
             {
                 laser.Draw(g);
             }
 
-            // Рисуем пули
             foreach (var bullet in bullets)
             {
                 bullet.Draw(g);
             }
 
-            // Рисуем шары
             foreach (var ball in balls)
             {
                 ball.Draw(g);
             }
 
-            // Рисуем игрока
             player.Draw(g);
-
-            // Рисуем UI
             DrawUI(g);
 
-            // Рисуем сообщение о проигрыше
             if (gameOver)
             {
                 DrawGameOver(g);
@@ -146,17 +139,14 @@ namespace SpaceBallCrusher1
             string gameOverText = "Проиграл";
             SizeF textSize = g.MeasureString(gameOverText, gameOverFont);
 
-            // Тень текста
             g.DrawString(gameOverText, gameOverFont, Brushes.Black,
                 (ClientSize.Width - textSize.Width) / 2 + 2,
                 (ClientSize.Height - textSize.Height) / 2 + 2);
 
-            // Основной текст
             g.DrawString(gameOverText, gameOverFont, Brushes.Red,
                 (ClientSize.Width - textSize.Width) / 2,
                 (ClientSize.Height - textSize.Height) / 2);
 
-            // Инструкция
             string restartText = "Нажмите R для рестарта";
             SizeF restartSize = g.MeasureString(restartText, uiFont);
             g.DrawString(restartText, uiFont, Brushes.White,
@@ -168,43 +158,23 @@ namespace SpaceBallCrusher1
         {
             if (gameOver) return;
 
-            // Обновляем фоновые объекты
-            UpdateBackgroundObjects();
+            // Обновление частиц взрыва
+            for (int i = explosionParticles.Count - 1; i >= 0; i--)
+            {
+                explosionParticles[i].Update();
+                if (explosionParticles[i].IsDead)
+                {
+                    explosionParticles.RemoveAt(i);
+                }
+            }
 
-            // Обновляем позицию игрока
-            player.UpdatePosition(PointToClient(Cursor.Position));
-
-            // Обновляем пули
-            UpdateBullets();
-
-            // Обновляем лазеры
-            UpdateLasers();
-
-            // Обновляем шары
-            UpdateBalls();
-
-            // Проверяем столкновения
-            CheckCollisions();
-
-            // Проверяем завершение уровня
-            CheckLevelCompletion();
-
-            // Проверяем окончание боеприпасов
-            CheckAmmo();
-
-            Invalidate();
-        }
-
-        private void UpdateBackgroundObjects()
-        {
             foreach (var obj in backgroundObjects)
             {
                 obj.Update(ClientSize.Width, ClientSize.Height);
             }
-        }
 
-        private void UpdateBullets()
-        {
+            player.UpdatePosition(PointToClient(Cursor.Position));
+
             for (int i = bullets.Count - 1; i >= 0; i--)
             {
                 bullets[i].Update();
@@ -213,10 +183,7 @@ namespace SpaceBallCrusher1
                     bullets.RemoveAt(i);
                 }
             }
-        }
 
-        private void UpdateLasers()
-        {
             for (int i = lasers.Count - 1; i >= 0; i--)
             {
                 lasers[i].Update();
@@ -225,14 +192,17 @@ namespace SpaceBallCrusher1
                     lasers.RemoveAt(i);
                 }
             }
-        }
 
-        private void UpdateBalls()
-        {
             foreach (var ball in balls)
             {
                 ball.Update(ClientSize.Width, ClientSize.Height);
             }
+
+            CheckCollisions();
+            CheckLevelCompletion();
+            CheckAmmo();
+
+            Invalidate();
         }
 
         private void CheckCollisions()
@@ -272,7 +242,7 @@ namespace SpaceBallCrusher1
                 {
                     if (lasers[i].CollidesWith(balls[j]))
                     {
-                        CreateFireworkEffect(balls[j]);
+                        CreateExplosionEffect(balls[j]);
                         score += (int)(150 / balls[j].Radius);
                         balls.RemoveAt(j);
                         break;
@@ -280,6 +250,36 @@ namespace SpaceBallCrusher1
                 }
             }
         }
+
+        private void CreateExplosionEffect(Ball ball)
+        {
+            // Увеличиваем количество частиц
+            int particlesCount = 50 + random.Next(20); // Больше частиц
+            float explosionPower = 3 + level * 0.5f;
+
+            for (int i = 0; i < particlesCount; i++)
+            {
+                float angle = (float)(random.NextDouble() * Math.PI * 2);
+                float speed = 0.5f + (float)random.NextDouble() * explosionPower;
+                int size = 3 + random.Next(5); // Увеличиваем размер частиц
+
+                // Яркие цвета, случайные оттенки, чтобы частицы выглядели ярче
+                Color color = Color.FromArgb(
+                    Math.Clamp(ball.Color.R + random.Next(-30, 30), 0, 255),
+                    Math.Clamp(ball.Color.G + random.Next(-30, 30), 0, 255),
+                    Math.Clamp(ball.Color.B + random.Next(-30, 30), 0, 255));
+
+                // Добавляем новые частицы
+                explosionParticles.Add(new ExplosionParticle(
+                    ball.X, ball.Y,
+                    size,
+                    color,
+                    angle,
+                    speed,
+                    40 + random.Next(20))); // Увеличиваем продолжительность жизни частиц
+            }
+        }
+
 
         private void SplitBall(Ball ball)
         {
@@ -305,38 +305,13 @@ namespace SpaceBallCrusher1
             }
         }
 
-        private void CreateFireworkEffect(Ball ball)
-        {
-            for (int i = 0; i < 15; i++)
-            {
-                int particleSize = random.Next(2, 6);
-                float angle = (float)(random.NextDouble() * Math.PI * 2);
-                float speed = 2 + random.Next(0, 5);
-
-                Color color = Color.FromArgb(
-                    random.Next(200, 255),
-                    random.Next(100, 200),
-                    random.Next(100, 200));
-
-                PointF velocity = new PointF(
-                    (float)(Math.Cos(angle) * speed),
-                    (float)(Math.Sin(angle) * speed));
-
-                lasers.Add(new LaserParticle(
-                    ball.X, ball.Y,
-                    particleSize,
-                    color,
-                    velocity));
-            }
-        }
-
         private void CheckLevelCompletion()
         {
             if (balls.Count == 0)
             {
                 level++;
                 ammo = 7 + (level - 1) * 7;
-                laserAmmo = 5 + level;
+                laserAmmo = 1 + (level - 1);
                 SpawnBallsForLevel();
             }
         }
@@ -388,13 +363,11 @@ namespace SpaceBallCrusher1
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            // Проверяем, что игра завершена и нажата клавиша R
-            if (gameOver && e.KeyCode == Keys.R)
+            if (e.KeyCode == Keys.R && gameOver)
             {
                 InitializeGame();
             }
         }
-
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
@@ -416,7 +389,6 @@ namespace SpaceBallCrusher1
 
         private void Form1_Load(object sender, EventArgs e)
         {
-
         }
     }
 }

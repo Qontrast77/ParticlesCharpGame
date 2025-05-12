@@ -26,7 +26,7 @@
             // gameTimer
             // 
             gameTimer.Enabled = true;
-            gameTimer.Interval = 20;
+            gameTimer.Interval = 1;
             gameTimer.Tick += gameTimer_Tick;
             // 
             // radioButton1
