@@ -30,6 +30,7 @@ namespace SpaceBallCrusher1
         public Form1()
         {
             InitializeComponent();
+            this.KeyPreview = true;
             InitializeGame();
         }
 
@@ -52,7 +53,7 @@ namespace SpaceBallCrusher1
             random = new Random();
             score = 0;
             level = 1;
-            ammo = 15;
+            ammo = 7;
             laserAmmo = 5;
             gameOver = false;
             laserMode = false;
@@ -142,7 +143,7 @@ namespace SpaceBallCrusher1
 
         private void DrawGameOver(Graphics g)
         {
-            string gameOverText = "GAME OVER";
+            string gameOverText = "Проиграл";
             SizeF textSize = g.MeasureString(gameOverText, gameOverFont);
 
             // Тень текста
@@ -334,7 +335,7 @@ namespace SpaceBallCrusher1
             if (balls.Count == 0)
             {
                 level++;
-                ammo = 15 + level * 2;
+                ammo = 7 + (level - 1) * 7;
                 laserAmmo = 5 + level;
                 SpawnBallsForLevel();
             }
@@ -387,11 +388,13 @@ namespace SpaceBallCrusher1
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.R && gameOver)
+            // Проверяем, что игра завершена и нажата клавиша R
+            if (gameOver && e.KeyCode == Keys.R)
             {
                 InitializeGame();
             }
         }
+
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
