@@ -11,12 +11,15 @@ namespace SpaceBallCrusher1
         private PlayerShip player;
         private List<Ball> balls;
         private List<Bullet> bullets;
+        private List<LaserBeam> lasers;
         private List<BackgroundObject> backgroundObjects;
         private Random random;
         private int score;
         private int level;
         private int ammo;
+        private int laserAmmo;
         private bool gameOver;
+        private bool laserMode;
         private Font uiFont;
         private Font gameOverFont;
         private Image backgroundImage;
@@ -45,15 +48,30 @@ namespace SpaceBallCrusher1
             player = new PlayerShip(ClientSize.Width / 2, ClientSize.Height / 2);
             balls = new List<Ball>();
             bullets = new List<Bullet>();
+            lasers = new List<LaserBeam>();
             random = new Random();
             score = 0;
             level = 1;
-            ammo = 10;
+            ammo = 15;
+            laserAmmo = 5;
             gameOver = false;
+            laserMode = false;
             uiFont = new Font("Arial", 12, FontStyle.Bold);
             gameOverFont = new Font("Arial", 48, FontStyle.Bold);
 
             // Инициализация фоновых объектов
+            InitializeBackgroundObjects();
+
+            // Создаем начальный шар
+            balls.Add(new Ball(random.Next(50, ClientSize.Width - 50),
+                     random.Next(50, ClientSize.Height - 50),
+                     40, 3, Color.Red));
+
+            gameTimer.Start();
+        }
+
+        private void InitializeBackgroundObjects()
+        {
             backgroundObjects = new List<BackgroundObject>();
             for (int i = 0; i < StarCount; i++)
             {
@@ -63,13 +81,6 @@ namespace SpaceBallCrusher1
             {
                 backgroundObjects.Add(new Asteroid(ClientSize.Width, ClientSize.Height));
             }
-
-            // Создаем начальный шар
-            balls.Add(new Ball(random.Next(50, ClientSize.Width - 50),
-                     random.Next(50, ClientSize.Height - 50),
-                     40, 3, Color.Red));
-
-            gameTimer.Start();
         }
 
         private void Form1_Paint(object sender, PaintEventArgs e)
@@ -85,19 +96,16 @@ namespace SpaceBallCrusher1
                 g.DrawImage(backgroundImage, 0, 0, ClientSize.Width, ClientSize.Height);
             }
 
-            // Рисуем фоновые объекты (звезды и астероиды)
+            // Рисуем фоновые объекты
             foreach (var obj in backgroundObjects)
             {
                 obj.Draw(g);
             }
 
-            // Рисуем игрока
-            player.Draw(g);
-
-            // Рисуем шары
-            foreach (var ball in balls)
+            // Рисуем лазерные лучи
+            foreach (var laser in lasers)
             {
-                ball.Draw(g);
+                laser.Draw(g);
             }
 
             // Рисуем пули
@@ -106,37 +114,53 @@ namespace SpaceBallCrusher1
                 bullet.Draw(g);
             }
 
+            // Рисуем шары
+            foreach (var ball in balls)
+            {
+                ball.Draw(g);
+            }
+
+            // Рисуем игрока
+            player.Draw(g);
+
             // Рисуем UI
             DrawUI(g);
 
             // Рисуем сообщение о проигрыше
             if (gameOver)
             {
-                string gameOverText = "Проиграл";
-                SizeF textSize = g.MeasureString(gameOverText, gameOverFont);
-
-                // Рисуем текст с черной обводкой
-                g.DrawString(gameOverText, gameOverFont, Brushes.Black,
-                    (ClientSize.Width - textSize.Width) / 2 + 2,
-                    (ClientSize.Height - textSize.Height) / 2 + 2);
-
-                g.DrawString(gameOverText, gameOverFont, Brushes.Red,
-                    (ClientSize.Width - textSize.Width) / 2,
-                    (ClientSize.Height - textSize.Height) / 2);
-
-                // Подпись для рестарта
-                string restartText = "Нажмите R, чтобы начать заново";
-                SizeF restartSize = g.MeasureString(restartText, uiFont);
-                g.DrawString(restartText, uiFont, Brushes.White,
-                    (ClientSize.Width - restartSize.Width) / 2,
-                    (ClientSize.Height - textSize.Height) / 2 + textSize.Height + 10);
+                DrawGameOver(g);
             }
         }
 
         private void DrawUI(Graphics g)
         {
-            string uiText = $"Уровень: {level}  Очки: {score}  Патроны: {ammo}";
+            string uiText = $"Уровень: {level}  Очки: {score}  " +
+                          (laserMode ? $"Лазеры: {laserAmmo}" : $"Патроны: {ammo}");
             g.DrawString(uiText, uiFont, Brushes.White, 10, 10);
+        }
+
+        private void DrawGameOver(Graphics g)
+        {
+            string gameOverText = "GAME OVER";
+            SizeF textSize = g.MeasureString(gameOverText, gameOverFont);
+
+            // Тень текста
+            g.DrawString(gameOverText, gameOverFont, Brushes.Black,
+                (ClientSize.Width - textSize.Width) / 2 + 2,
+                (ClientSize.Height - textSize.Height) / 2 + 2);
+
+            // Основной текст
+            g.DrawString(gameOverText, gameOverFont, Brushes.Red,
+                (ClientSize.Width - textSize.Width) / 2,
+                (ClientSize.Height - textSize.Height) / 2);
+
+            // Инструкция
+            string restartText = "Нажмите R для рестарта";
+            SizeF restartSize = g.MeasureString(restartText, uiFont);
+            g.DrawString(restartText, uiFont, Brushes.White,
+                (ClientSize.Width - restartSize.Width) / 2,
+                (ClientSize.Height - textSize.Height) / 2 + textSize.Height + 10);
         }
 
         private void gameTimer_Tick(object sender, EventArgs e)
@@ -144,47 +168,79 @@ namespace SpaceBallCrusher1
             if (gameOver) return;
 
             // Обновляем фоновые объекты
+            UpdateBackgroundObjects();
+
+            // Обновляем позицию игрока
+            player.UpdatePosition(PointToClient(Cursor.Position));
+
+            // Обновляем пули
+            UpdateBullets();
+
+            // Обновляем лазеры
+            UpdateLasers();
+
+            // Обновляем шары
+            UpdateBalls();
+
+            // Проверяем столкновения
+            CheckCollisions();
+
+            // Проверяем завершение уровня
+            CheckLevelCompletion();
+
+            // Проверяем окончание боеприпасов
+            CheckAmmo();
+
+            Invalidate();
+        }
+
+        private void UpdateBackgroundObjects()
+        {
             foreach (var obj in backgroundObjects)
             {
                 obj.Update(ClientSize.Width, ClientSize.Height);
             }
+        }
 
-            player.UpdatePosition(PointToClient(Cursor.Position));
-
+        private void UpdateBullets()
+        {
             for (int i = bullets.Count - 1; i >= 0; i--)
             {
                 bullets[i].Update();
-
                 if (bullets[i].IsOutOfBounds(ClientSize))
                 {
                     bullets.RemoveAt(i);
                 }
             }
+        }
 
+        private void UpdateLasers()
+        {
+            for (int i = lasers.Count - 1; i >= 0; i--)
+            {
+                lasers[i].Update();
+                if (lasers[i].IsComplete)
+                {
+                    lasers.RemoveAt(i);
+                }
+            }
+        }
+
+        private void UpdateBalls()
+        {
             foreach (var ball in balls)
             {
                 ball.Update(ClientSize.Width, ClientSize.Height);
             }
-
-            CheckCollisions();
-
-            if (balls.Count == 0)
-            {
-                level++;
-                ammo = 10 + level * 2;
-                SpawnBallsForLevel();
-            }
-
-            if (ammo <= 0 && bullets.Count == 0 && balls.Count > 0)
-            {
-                gameOver = true;
-                gameTimer.Stop();
-            }
-
-            Invalidate();
         }
 
         private void CheckCollisions()
+        {
+            CheckBulletCollisions();
+            CheckLaserCollisions();
+        }
+
+        private void CheckBulletCollisions()
         {
             for (int i = bullets.Count - 1; i >= 0; i--)
             {
@@ -201,6 +257,23 @@ namespace SpaceBallCrusher1
 
                         balls.RemoveAt(j);
                         bullets.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void CheckLaserCollisions()
+        {
+            for (int i = lasers.Count - 1; i >= 0; i--)
+            {
+                for (int j = balls.Count - 1; j >= 0; j--)
+                {
+                    if (lasers[i].CollidesWith(balls[j]))
+                    {
+                        CreateFireworkEffect(balls[j]);
+                        score += (int)(150 / balls[j].Radius);
+                        balls.RemoveAt(j);
                         break;
                     }
                 }
@@ -231,6 +304,52 @@ namespace SpaceBallCrusher1
             }
         }
 
+        private void CreateFireworkEffect(Ball ball)
+        {
+            for (int i = 0; i < 15; i++)
+            {
+                int particleSize = random.Next(2, 6);
+                float angle = (float)(random.NextDouble() * Math.PI * 2);
+                float speed = 2 + random.Next(0, 5);
+
+                Color color = Color.FromArgb(
+                    random.Next(200, 255),
+                    random.Next(100, 200),
+                    random.Next(100, 200));
+
+                PointF velocity = new PointF(
+                    (float)(Math.Cos(angle) * speed),
+                    (float)(Math.Sin(angle) * speed));
+
+                lasers.Add(new LaserParticle(
+                    ball.X, ball.Y,
+                    particleSize,
+                    color,
+                    velocity));
+            }
+        }
+
+        private void CheckLevelCompletion()
+        {
+            if (balls.Count == 0)
+            {
+                level++;
+                ammo = 15 + level * 2;
+                laserAmmo = 5 + level;
+                SpawnBallsForLevel();
+            }
+        }
+
+        private void CheckAmmo()
+        {
+            if ((ammo <= 0 && !laserMode && bullets.Count == 0 && balls.Count > 0) ||
+                (laserAmmo <= 0 && laserMode && lasers.Count == 0 && balls.Count > 0))
+            {
+                gameOver = true;
+                gameTimer.Stop();
+            }
+        }
+
         private void SpawnBallsForLevel()
         {
             for (int i = 0; i < level; i++)
@@ -248,10 +367,21 @@ namespace SpaceBallCrusher1
         {
             if (gameOver) return;
 
-            if (e.Button == MouseButtons.Left && ammo > 0)
+            if (e.Button == MouseButtons.Left)
             {
-                bullets.Add(new Bullet(player.X, player.Y, PointToClient(Cursor.Position)));
-                ammo--;
+                if (!laserMode && ammo > 0)
+                {
+                    bullets.Add(new Bullet(player.X, player.Y, PointToClient(Cursor.Position)));
+                    ammo--;
+                }
+                else if (laserMode && laserAmmo > 0)
+                {
+                    lasers.Add(new LaserBeam(
+                        player.X, player.Y,
+                        PointToClient(Cursor.Position),
+                        Color.FromArgb(255, 50, 50)));
+                    laserAmmo--;
+                }
             }
         }
 
@@ -263,21 +393,21 @@ namespace SpaceBallCrusher1
             }
         }
 
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            laserMode = false;
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            laserMode = true;
+        }
+
         private void Form1_Resize(object sender, EventArgs e)
         {
-            // При изменении размера окна пересоздаем фоновые объекты
             if (backgroundObjects != null && backgroundObjects.Count > 0)
             {
-                var oldObjects = backgroundObjects;
-                backgroundObjects = new List<BackgroundObject>();
-
-                foreach (var obj in oldObjects)
-                {
-                    if (obj is Star)
-                        backgroundObjects.Add(new Star(ClientSize.Width, ClientSize.Height));
-                    else if (obj is Asteroid)
-                        backgroundObjects.Add(new Asteroid(ClientSize.Width, ClientSize.Height));
-                }
+                InitializeBackgroundObjects();
             }
         }
 
