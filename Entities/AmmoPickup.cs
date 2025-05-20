@@ -10,7 +10,7 @@ namespace SpaceBallCrusher1.Entities
             : base(x, y, radius, color)
         {
             // Загружаем изображение патрона
-            ammoImage = Image.FromFile("..\\..\\..\\Image\\Ammo.png"); // Убедитесь, что путь верный
+            ammoImage = Image.FromFile("..\\..\\..\\Image\\Ammo.png"); 
 
             // Движение по синусоиде
             Speed = 1.5f;

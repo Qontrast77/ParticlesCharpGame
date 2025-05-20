@@ -6,16 +6,19 @@ namespace SpaceBallCrusher1.Entities
     {
         public float X { get; set; }
         public float Y { get; set; }
-        private const int ShipWidth = 30;  
-        private const int ShipHeight = 45; 
-        private const int EngineSize = 10;  
+        private const int ShipWidth = 30;
+        private const int ShipHeight = 45;
+        private const int EngineSize = 10;
         private const int CockpitSize = 15;
         public int Size { get; } = 30;
+
+        private Image shipImage;
 
         public PlayerShip(float x, float y)
         {
             X = x;
             Y = y;
+            shipImage = Image.FromFile("..\\..\\..\\Image\\PlayerShip.png"); // Загружаем изображение корабля
         }
 
         public void UpdatePosition(Point target)
@@ -26,78 +29,41 @@ namespace SpaceBallCrusher1.Entities
 
         public void Draw(Graphics g)
         {
-            // Корпус корабля (основной треугольник)
-            PointF[] hull = new PointF[3]
-            {
-                new PointF(X, Y - ShipHeight/2), // Нос корабля
-                new PointF(X - ShipWidth/2, Y + ShipHeight/2), // Левая задняя точка
-                new PointF(X + ShipWidth/2, Y + ShipHeight/2)  // Правая задняя точка
-            };
+            // Новые размеры корабля (уменьшаем в два раза, например)
+            float scaledWidth = shipImage.Width / 10;
+            float scaledHeight = shipImage.Height / 10;
 
-            // Кабина (полукруг)
-            RectangleF cockpitRect = new RectangleF(
-                X - CockpitSize / 2,
-                Y - ShipHeight / 2 - CockpitSize / 4, // немного подняли кабину
-                CockpitSize,
-                CockpitSize);
+            // Рисуем изображение с новыми размерами
+            g.DrawImage(shipImage, X - scaledWidth / 2, Y - scaledHeight / 2, scaledWidth, scaledHeight);
 
-            // Двигатели (задние прямоугольники)
-            RectangleF leftEngine = new RectangleF(
-                X - ShipWidth / 3,
-                Y + ShipHeight / 2,
-                EngineSize / 2,
-                EngineSize);
-
-            RectangleF rightEngine = new RectangleF(
-                X + ShipWidth / 3 - EngineSize / 2,
-                Y + ShipHeight / 2,
-                EngineSize / 2,
-                EngineSize);
-
-            // Центральный двигатель
-            RectangleF centerEngine = new RectangleF(
-                X - EngineSize / 3,
-                Y + ShipHeight / 2,
-                EngineSize * 2 / 3,
-                EngineSize);
-
-            // Рисуем корпус
-            g.FillPolygon(new SolidBrush(Color.FromArgb(0, 255, 200)), hull);
-            g.DrawPolygon(Pens.White, hull);
-
-            // Рисуем кабину
-            g.FillEllipse(new SolidBrush(Color.FromArgb(0, 255, 200)), cockpitRect);
-            g.DrawEllipse(Pens.White, cockpitRect);
-
-            // Рисуем двигатели
-            g.FillRectangle(Brushes.DarkSlateGray, leftEngine);
-            g.FillRectangle(Brushes.DarkSlateGray, rightEngine);
-            g.FillRectangle(Brushes.DarkSlateGray, centerEngine);
-
-            // Огни двигателей (анимация)
+            // Огни двигателей (анимированные)
             if (DateTime.Now.Millisecond % 500 < 250)
             {
+                // Рисуем пламя слева
                 PointF[] leftFlame = new PointF[3]
                 {
-                    new PointF(X - ShipWidth/3 + EngineSize/4, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X - ShipWidth/3, Y + ShipHeight/2 + EngineSize + 5), // уменьшена длина пламени
-                    new PointF(X - ShipWidth/3 + EngineSize/2, Y + ShipHeight/2 + EngineSize + 5)
+                    new PointF(X - ShipWidth / 3 + EngineSize / 4, Y + ShipHeight / 2 + EngineSize),
+                    new PointF(X - ShipWidth / 3, Y + ShipHeight / 2 + EngineSize + 5), // уменьшена длина пламени
+                    new PointF(X - ShipWidth / 3 + EngineSize / 2, Y + ShipHeight / 2 + EngineSize + 5)
                 };
 
+                // Рисуем пламя справа
                 PointF[] rightFlame = new PointF[3]
                 {
-                    new PointF(X + ShipWidth/3 - EngineSize/4, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X + ShipWidth/3 - EngineSize/2, Y + ShipHeight/2 + EngineSize + 5),
-                    new PointF(X + ShipWidth/3, Y + ShipHeight/2 + EngineSize + 5)
+                    new PointF(X + ShipWidth / 3 - EngineSize / 4, Y + ShipHeight / 2 + EngineSize),
+                    new PointF(X + ShipWidth / 3 - EngineSize / 2, Y + ShipHeight / 2 + EngineSize + 5),
+                    new PointF(X + ShipWidth / 3, Y + ShipHeight / 2 + EngineSize + 5)
                 };
 
+                // Рисуем центральное пламя
                 PointF[] centerFlame = new PointF[3]
                 {
-                    new PointF(X, Y + ShipHeight/2 + EngineSize),
-                    new PointF(X - EngineSize/3, Y + ShipHeight/2 + EngineSize + 8), // уменьшена длина пламени
-                    new PointF(X + EngineSize/3, Y + ShipHeight/2 + EngineSize + 8)
+                    new PointF(X, Y + ShipHeight / 2 + EngineSize),
+                    new PointF(X - EngineSize / 3, Y + ShipHeight / 2 + EngineSize + 8), // уменьшена длина пламени
+                    new PointF(X + EngineSize / 3, Y + ShipHeight / 2 + EngineSize + 8)
                 };
 
+                // Заполняем пламя оранжевым цветом
                 g.FillPolygon(Brushes.OrangeRed, leftFlame);
                 g.FillPolygon(Brushes.OrangeRed, rightFlame);
                 g.FillPolygon(Brushes.OrangeRed, centerFlame);
