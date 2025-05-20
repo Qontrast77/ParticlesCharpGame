@@ -9,7 +9,8 @@ namespace SpaceBallCrusher1.Entities
         private const int ShipWidth = 30;  
         private const int ShipHeight = 45; 
         private const int EngineSize = 10;  
-        private const int CockpitSize = 15; 
+        private const int CockpitSize = 15;
+        public int Size { get; } = 30;
 
         public PlayerShip(float x, float y)
         {

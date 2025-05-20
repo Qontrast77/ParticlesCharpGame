@@ -14,6 +14,8 @@ namespace SpaceBallCrusher1
         private List<LaserBeam> lasers;
         private List<ExplosionParticle> explosionParticles;
         private List<BackgroundObject> backgroundObjects;
+        private List<AmmoPickup> ammoPickups;
+        private List<DangerousAsteroid> dangerousAsteroids;
         private Random random;
         private int score;
         private int level;
@@ -27,6 +29,8 @@ namespace SpaceBallCrusher1
 
         private const int StarCount = 150;
         private const int AsteroidCount = 30;
+        private const int AmmoPickupsCount = 2;
+        private const int DangerousAsteroidsCount = 3;
 
         public Form1()
         {
@@ -52,17 +56,21 @@ namespace SpaceBallCrusher1
             lasers = new List<LaserBeam>();
             explosionParticles = new List<ExplosionParticle>();
             backgroundObjects = new List<BackgroundObject>();
+            ammoPickups = new List<AmmoPickup>();
+            dangerousAsteroids = new List<DangerousAsteroid>();
             random = new Random();
             score = 0;
             level = 1;
             ammo = 7;
-            laserAmmo = 1;
+            laserAmmo = 5;
             gameOver = false;
             laserMode = false;
             uiFont = new Font("Arial", 12, FontStyle.Bold);
             gameOverFont = new Font("Arial", 48, FontStyle.Bold);
 
             InitializeBackgroundObjects();
+            SpawnAmmoPickups();
+            SpawnDangerousAsteroids();
 
             balls.Add(new Ball(random.Next(50, ClientSize.Width - 50),
                      random.Next(50, ClientSize.Height - 50),
@@ -83,6 +91,31 @@ namespace SpaceBallCrusher1
             }
         }
 
+        private void SpawnAmmoPickups()
+        {
+            for (int i = 0; i < AmmoPickupsCount; i++)
+            {
+                ammoPickups.Add(new AmmoPickup(
+                    random.Next(50, ClientSize.Width - 50),
+                    random.Next(50, ClientSize.Height - 50),
+                    15,
+                    Color.LimeGreen));
+            }
+        }
+
+        private void SpawnDangerousAsteroids()
+        {
+            for (int i = 0; i < DangerousAsteroidsCount; i++)
+            {
+                dangerousAsteroids.Add(new DangerousAsteroid(
+                    random.Next(50, ClientSize.Width - 50),
+                    random.Next(50, ClientSize.Height - 50),
+                    25,
+                    2,
+                    Color.DarkRed));
+            }
+        }
+
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
@@ -96,6 +129,16 @@ namespace SpaceBallCrusher1
             foreach (var obj in backgroundObjects)
             {
                 obj.Draw(g);
+            }
+
+            foreach (var ammoPickup in ammoPickups)
+            {
+                ammoPickup.Draw(g);
+            }
+
+            foreach (var asteroid in dangerousAsteroids)
+            {
+                asteroid.Draw(g);
             }
 
             foreach (var particle in explosionParticles)
@@ -168,13 +211,28 @@ namespace SpaceBallCrusher1
                 }
             }
 
+            // Обновление фоновых объектов
             foreach (var obj in backgroundObjects)
             {
                 obj.Update(ClientSize.Width, ClientSize.Height);
             }
 
+            // Обновление патронов для сбора
+            foreach (var ammoPickup in ammoPickups)
+            {
+                ammoPickup.Update(ClientSize.Width, ClientSize.Height);
+            }
+
+            // Обновление опасных метеоритов
+            foreach (var asteroid in dangerousAsteroids)
+            {
+                asteroid.Update(ClientSize.Width, ClientSize.Height);
+            }
+
+            // Обновление позиции игрока
             player.UpdatePosition(PointToClient(Cursor.Position));
 
+            // Обновление пуль
             for (int i = bullets.Count - 1; i >= 0; i--)
             {
                 bullets[i].Update();
@@ -184,6 +242,7 @@ namespace SpaceBallCrusher1
                 }
             }
 
+            // Обновление лазеров
             for (int i = lasers.Count - 1; i >= 0; i--)
             {
                 lasers[i].Update();
@@ -193,12 +252,16 @@ namespace SpaceBallCrusher1
                 }
             }
 
+            // Обновление шаров
             foreach (var ball in balls)
             {
                 ball.Update(ClientSize.Width, ClientSize.Height);
             }
 
+            // Проверка столкновений
             CheckCollisions();
+            CheckAmmoPickupCollisions();
+            CheckDangerousCollisions();
             CheckLevelCompletion();
             CheckAmmo();
 
@@ -217,7 +280,7 @@ namespace SpaceBallCrusher1
             {
                 for (int j = balls.Count - 1; j >= 0; j--)
                 {
-                    if (bullets[i].CollidesWith(balls[j]))
+                    if (BulletHitsBall(bullets[i], balls[j]))
                     {
                         score += (int)(100 / balls[j].Radius);
 
@@ -232,6 +295,14 @@ namespace SpaceBallCrusher1
                     }
                 }
             }
+        }
+
+        private bool BulletHitsBall(Bullet bullet, Ball ball)
+        {
+            float dx = bullet.X - ball.X;
+            float dy = bullet.Y - ball.Y;
+            float distance = (float)Math.Sqrt(dx * dx + dy * dy);
+            return distance < (bullet.Size / 2 + ball.Radius);
         }
 
         private void CheckLaserCollisions()
@@ -251,35 +322,95 @@ namespace SpaceBallCrusher1
             }
         }
 
+        private void CheckAmmoPickupCollisions()
+        {
+            for (int i = ammoPickups.Count - 1; i >= 0; i--)
+            {
+                if (PlayerHitsAmmoPickup(player, ammoPickups[i]))
+                {
+                    if (laserMode)
+                        laserAmmo += 3;
+                    else
+                        ammo += 5;
+
+                    ammoPickups.RemoveAt(i);
+                    continue;
+                }
+
+                if (ammoPickups[i].IsOutOfBounds(ClientSize))
+                {
+                    ammoPickups.RemoveAt(i);
+                }
+            }
+
+            if (ammoPickups.Count < AmmoPickupsCount)
+            {
+                SpawnAmmoPickups();
+            }
+        }
+
+        private bool PlayerHitsAmmoPickup(PlayerShip player, AmmoPickup ammoPickup)
+        {
+            float dx = player.X - ammoPickup.X;
+            float dy = player.Y - ammoPickup.Y;
+            float distance = (float)Math.Sqrt(dx * dx + dy * dy);
+            return distance < (player.Size / 2 + ammoPickup.Radius);
+        }
+
+        private void CheckDangerousCollisions()
+        {
+            foreach (var asteroid in dangerousAsteroids)
+            {
+                if (PlayerHitsAsteroid(player, asteroid))
+                {
+                    gameOver = true;
+                    gameTimer.Stop();
+                    break;
+                }
+            }
+        }
+
+        private bool PlayerHitsAsteroid(PlayerShip player, DangerousAsteroid asteroid)
+        {
+            float dx = player.X - asteroid.X;
+            float dy = player.Y - asteroid.Y;
+            float distance = (float)Math.Sqrt(dx * dx + dy * dy);
+            return distance < (player.Size / 2 + asteroid.Radius);
+        }
+
+        private bool IsColliding(SpaceObject obj1, SpaceObject obj2)
+        {
+            float dx = obj1.X - obj2.X;
+            float dy = obj1.Y - obj2.Y;
+            float distance = (float)Math.Sqrt(dx * dx + dy * dy);
+            return distance < (obj1.Radius + obj2.Radius);
+        }
+
         private void CreateExplosionEffect(Ball ball)
         {
-            // Увеличиваем количество частиц
-            int particlesCount = 50 + random.Next(20); // Больше частиц
+            int particlesCount = 20 + random.Next(10);
             float explosionPower = 3 + level * 0.5f;
 
             for (int i = 0; i < particlesCount; i++)
             {
                 float angle = (float)(random.NextDouble() * Math.PI * 2);
                 float speed = 0.5f + (float)random.NextDouble() * explosionPower;
-                int size = 3 + random.Next(5); // Увеличиваем размер частиц
+                int size = 2 + random.Next(4);
 
-                // Яркие цвета, случайные оттенки, чтобы частицы выглядели ярче
                 Color color = Color.FromArgb(
-                    Math.Clamp(ball.Color.R + random.Next(-30, 30), 0, 255),
-                    Math.Clamp(ball.Color.G + random.Next(-30, 30), 0, 255),
-                    Math.Clamp(ball.Color.B + random.Next(-30, 30), 0, 255));
+                    Math.Clamp(ball.Color.R + random.Next(-40, 40), 0, 255),
+                    Math.Clamp(ball.Color.G + random.Next(-40, 40), 0, 255),
+                    Math.Clamp(ball.Color.B + random.Next(-40, 40), 0, 255));
 
-                // Добавляем новые частицы
                 explosionParticles.Add(new ExplosionParticle(
                     ball.X, ball.Y,
                     size,
                     color,
                     angle,
                     speed,
-                    40 + random.Next(20))); // Увеличиваем продолжительность жизни частиц
+                    30 + random.Next(30)));
             }
         }
-
 
         private void SplitBall(Ball ball)
         {
@@ -311,8 +442,9 @@ namespace SpaceBallCrusher1
             {
                 level++;
                 ammo = 7 + (level - 1) * 7;
-                laserAmmo = 1 + (level - 1);
+                laserAmmo = 5 + level;
                 SpawnBallsForLevel();
+                SpawnDangerousAsteroids();
             }
         }
 

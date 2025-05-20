@@ -8,7 +8,7 @@ namespace SpaceBallCrusher1.Entities
         public float Y { get; set; }
         private float dx, dy;
         private const float Speed = 15;
-        private const int Size = 5;
+        public int Size { get; } = 5;
 
         public Bullet(float startX, float startY, Point target)
         {
