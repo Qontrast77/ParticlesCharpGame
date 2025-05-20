@@ -1,4 +1,4 @@
-### *. Создал игрушку SpaseBallCrasher
+### Создал игрушку SpaseBallCrasher
 
 
 
