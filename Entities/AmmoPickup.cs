@@ -4,9 +4,14 @@ namespace SpaceBallCrusher1.Entities
 {
     public class AmmoPickup : SpaceObject
     {
+        private Image ammoImage;
+
         public AmmoPickup(float x, float y, float radius, Color color)
             : base(x, y, radius, color)
         {
+            // Загружаем изображение патрона
+            ammoImage = Image.FromFile("..\\..\\..\\Image\\Ammo.png"); // Убедитесь, что путь верный
+
             // Движение по синусоиде
             Speed = 1.5f;
             float angle = (float)(new Random().NextDouble() * Math.PI * 2);
@@ -25,24 +30,12 @@ namespace SpaceBallCrusher1.Entities
 
         public override void Draw(Graphics g)
         {
-            // Цвет патрона
-            Color bulletColor = Color.Yellow;
+            // Новые размеры патрона (уменьшаем в два раза, например)
+            float scaledWidth = ammoImage.Width / 10;
+            float scaledHeight = ammoImage.Height / 10;
 
-            // Рисуем корпус патрона (прямоугольник)
-            RectangleF bulletBody = new RectangleF(X - Radius, Y, Radius * 2, Radius * 4);
-            g.FillRectangle(new SolidBrush(bulletColor), bulletBody);
-            g.DrawRectangle(Pens.Black, bulletBody.X, bulletBody.Y, bulletBody.Width, bulletBody.Height);
-
-            // Рисуем верхнюю часть патрона (круглая "головка")
-            g.FillEllipse(new SolidBrush(bulletColor), X - Radius, Y - Radius * 2, Radius * 2, Radius * 2);
-            g.DrawEllipse(Pens.Black, X - Radius, Y - Radius * 2, Radius * 2, Radius * 2);
-
-            // Рисуем основание патрона (маленький круг внизу)
-            g.FillEllipse(new SolidBrush(Color.Black), X - Radius, Y + Radius * 3, Radius * 2, Radius);
-            g.DrawEllipse(Pens.Black, X - Radius, Y + Radius * 3, Radius * 2, Radius);
+            // Рисуем изображение с новыми размерами
+            g.DrawImage(ammoImage, X - scaledWidth / 2, Y - scaledHeight / 2, scaledWidth, scaledHeight);
         }
-
-
-
     }
 }

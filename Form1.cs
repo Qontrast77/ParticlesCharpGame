@@ -29,7 +29,7 @@ namespace SpaceBallCrusher1
 
         private const int StarCount = 150;
         private const int AsteroidCount = 30;
-        private const int AmmoPickupsCount = 2;
+        private const int AmmoPickupsCount = 1;
         private const int DangerousAsteroidsCount = 3;
 
         public Form1()
@@ -62,7 +62,7 @@ namespace SpaceBallCrusher1
             score = 0;
             level = 1;
             ammo = 7;
-            laserAmmo = 5;
+            laserAmmo = 1;
             gameOver = false;
             laserMode = false;
             uiFont = new Font("Arial", 12, FontStyle.Bold);
@@ -93,14 +93,12 @@ namespace SpaceBallCrusher1
 
         private void SpawnAmmoPickups()
         {
-            for (int i = 0; i < AmmoPickupsCount; i++)
-            {
-                ammoPickups.Add(new AmmoPickup(
-                    random.Next(50, ClientSize.Width - 50),
-                    random.Next(50, ClientSize.Height - 50),
-                    15,
-                    Color.LimeGreen));
-            }
+            ammoPickups.Clear(); // Очищаем старые патроны
+            ammoPickups.Add(new AmmoPickup(
+                random.Next(50, ClientSize.Width - 50),
+                random.Next(50, ClientSize.Height - 50),
+                12,
+                Color.LimeGreen));
         }
 
         private void SpawnDangerousAsteroids()
@@ -329,9 +327,9 @@ namespace SpaceBallCrusher1
                 if (PlayerHitsAmmoPickup(player, ammoPickups[i]))
                 {
                     if (laserMode)
-                        laserAmmo += 3;
+                        laserAmmo += 1;
                     else
-                        ammo += 5;
+                        ammo += 1;
 
                     ammoPickups.RemoveAt(i);
                     continue;
@@ -442,9 +440,10 @@ namespace SpaceBallCrusher1
             {
                 level++;
                 ammo = 7 + (level - 1) * 7;
-                laserAmmo = 5 + level;
+                laserAmmo = 1 + (level - 1);
                 SpawnBallsForLevel();
                 SpawnDangerousAsteroids();
+                SpawnAmmoPickups(); // Добавляем вызов создания патрона
             }
         }
 
